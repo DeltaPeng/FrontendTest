@@ -1,0 +1,50 @@
+# this .dev is for dev/testing. Run via:   docker build -f Dockerfile.dev .
+
+# docker image to build from
+FROM node:alpine
+
+# change default working dir. Will create any folders that don't exist.
+# WORKDIR /usr/app   Some may prefer putting it in var or in home dir
+# makes this the default dir all commands run from
+WORKDIR /app
+
+# command to copy files from (path on file system) to (path on container)
+# copies all files from current working dir, to current working dir (default location: root) inside container
+COPY ./package.json ./ 
+
+# additional items to run 
+# call npm to install dependencies of package.json
+RUN npm install
+
+#separated this copy so that, if a regular change occurs to non-package.json, 
+# the cached version of the images up to this step can be run instead
+# and the lengthy npm install can be skipped when unneeded
+
+# unnecessary if used with docker-compose and if you mount docker drives
+COPY ./ ./ 
+
+# for dev, mount drives so that they are sync'd between the local file system and
+#   the container, so that changes made are immediately reflected in the container
+
+
+# change default command
+CMD ["npm", "run", "start"]
+
+
+# instead of copying the files directly over, mount a drive / add a docker volume
+#  to reference the files instead of copying them, and also lets changes show up immediately in the container
+# add below to docker run: maps everything in the present working directory, to the app folder in the container
+# -v $(pwd):/app
+# however this would error since the container has node_modules but the local files don't. It'd try to map
+# back, but can't find the matching folder.  This can be fixed with below, which tells it not to map that specific folder.
+# -v /app/node_modules   
+# 
+# then run it like so. If no tag is specified, default is latest
+#    docker build -t tngai13/frontend -f Dockerfile.dev .
+# this container requires incoming traffic into it (when user types in url)
+# set it up so when user types url, it connects to container to get output
+# in browser, can't use localhost for docker toolbar, i.e.: http://192.168.99.100:3000/
+#
+# For this command, for whatever reason we need -it so that it doesn't auto exit itself. 
+# Also add port to redirect traffic from container to host machine, i.e.
+#    docker run -it -p 3000:3000 -v /app/node_modules -v $(pwd):/app tngai13/frontend

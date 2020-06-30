@@ -1,0 +1,39 @@
+language: generic
+sudo: required
+
+services:
+    - docker
+ 
+# give it a name rather than a randomly generated id
+before_install:
+    docker build -t tngai13/frontend-aws0 -f Dockerfile.dev .
+
+# currently tests failing
+script:
+    - docker run -e CI=true tngai13/frontend-aws0 npm run test
+
+# deploy to AWS elastic beanstalk
+# region should be where you orig created your elasticbeanstalk (check url)
+# app and environment (branch path is same val as this) is name of app you specifed in aws
+# for bucket name, search for s3, look for something like elasticbeanstalk-us-west-2-306476...
+#
+# search for IAM, Identity Access Management, service to manage API keys, Users (on left side bar), Add User
+# add user name like: docker-react-travis-ci
+# if error, check 99, may need permission added for travis ci user, but default should be fine
+# attach existing policies directly, essentially these are permissions, search beanstalk,
+# i.e. want to add permissions to deploy. Can just use Provides full access, Next, Review, create user
+# will give you Secret access key, it will only show you it once, so copy it down. Need the key, but don't
+# want for it to be public i.e. don't put it in here per git, so instead use env secrets.
+# Travis CI, right side More options, settings, Environment Variables is where to store the secret to let Travis CI store it
+# make one for AWS_ACCESS_KEY, AWS_SECRET_KEY
+deploy: 
+    provider: elasticbeanstalk
+    region: "us-west-2"
+    app: "aws-docker"
+    env: "Docker-env"
+    bucket_name: "elasticbeanstalk-us-west-2-306476..."
+    bucket_path: "aws-docker"
+    on:
+        branch: master
+    access_key_id: $AWS_ACCESS_KEY
+    secret_access_key: $AWS_SECRET_KEY
